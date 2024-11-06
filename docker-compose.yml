@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app:
+    image: 'exerciseapp'
+    build:
+      context: .
+    container_name: demo_app
+    depends_on:
+      - db
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/exercise
+      - SPRING_DATASOURCE_USERNAME=admin
+      - SPRING_DATASOURCE_PASSWORD=admin
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update
+    ports:
+      - "8080:8080"
+
+  db:
+    image: postgres:latest
+    container_name: postgres_db
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=exercise
+    ports:
+      - "5432:5432"
