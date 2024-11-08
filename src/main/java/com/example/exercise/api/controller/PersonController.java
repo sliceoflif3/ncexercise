@@ -1,18 +1,26 @@
 package com.example.exercise.api.controller;
 
+import com.example.exercise.api.consumer.MessageConsumer;
 import com.example.exercise.api.dto.PersonDTO;
+import com.example.exercise.api.model.KafkaResponse;
 import com.example.exercise.api.model.Person;
 import com.example.exercise.api.producer.MessageProducer;
 import com.example.exercise.api.repository.PersonRepository;
 import com.example.exercise.api.service.PersonService;
 import lombok.AllArgsConstructor;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-import java.util.Optional;
+import java.time.Duration;
+import java.util.*;
 
 @RestController
 @AllArgsConstructor
@@ -25,6 +33,8 @@ public class PersonController {
 
     @Autowired
     private MessageProducer messageProducer;
+    @Autowired
+    private MessageConsumer messageConsumer;
 
     @GetMapping("/person")
     public ResponseEntity<PersonDTO> findPersonByTaxNumber(@RequestParam String taxNumber) {
@@ -78,10 +88,50 @@ public class PersonController {
         messageProducer.sendMessage("tax-calculation-topic","CALCULATETAX-" + taxNumber + "-" + taxAmount, null);
         return new ResponseEntity<>(HttpStatus.OK);
     }
+//
+//    @Autowired
+//    private KafkaTemplate<String, Person> kafkaTemplate;
+//
+//    @Autowired
+//    private ConsumerFactory<String, String> consumerFactory;
 
-//    @PostMapping("/send")
-//    public String sendMessage(@RequestParam("message") String message) {
-//        messageProducer.sendMessage("my-topic", message);
-//        return "Message sent: " + message;
-//    }
+    @GetMapping("/consume")
+    public KafkaResponse consumeEvents(@RequestParam(defaultValue = "10") int maxEvents) {
+        messageProducer.sendMessage("ping-topic","test",null);
+        List<String> events = new ArrayList<>();
+        int messagesLeft = 0;
+        boolean hasMoreMessages = false;
+
+        Properties props = new Properties();
+        props.put(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "kafka:9092");
+        props.put(ConsumerConfig.GROUP_ID_CONFIG, "my-group-id");
+        props.put(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer.class);
+        props.put(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false");
+
+        try (KafkaConsumer<String, String> consumer = new KafkaConsumer<>(props)) {
+            consumer.subscribe(List.of("ping-topic"));
+            var records = consumer.poll(Duration.ofSeconds(1));
+            var count = 0;
+
+            for (ConsumerRecord<String, String> record : records) {
+                if (count < maxEvents) {
+                    events.add(record.value());
+                    count++;
+                } else {
+                    hasMoreMessages = true;
+                    break;
+                }
+            }
+            messagesLeft = records.count() - count;
+            consumer.commitSync();
+        }
+
+        System.out.println(messagesLeft);
+
+        return new KafkaResponse(events, messagesLeft, hasMoreMessages);
+
+
+    }
+
 }

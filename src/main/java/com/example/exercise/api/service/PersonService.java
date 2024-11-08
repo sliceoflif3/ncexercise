@@ -1,21 +1,34 @@
 package com.example.exercise.api.service;
 
+import com.example.exercise.api.consumer.MessageConsumer;
 import com.example.exercise.api.dto.PersonDTO;
 import com.example.exercise.api.model.Person;
 import com.example.exercise.api.repository.PersonRepository;
+import jakarta.annotation.PostConstruct;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.springframework.boot.context.config.ConfigDataResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Service
 @Builder
+@AllArgsConstructor
 public class PersonService {
     private final PersonRepository personRepository;
 
@@ -24,9 +37,9 @@ public class PersonService {
         return Period.between(dateOfBirth, LocalDate.now()).getYears();
     }
 
-    public PersonService(PersonRepository personRepository) {
-        this.personRepository = personRepository;
-    }
+//    public PersonService(PersonRepository personRepository) {
+//        this.personRepository = personRepository;
+//    }
 
     public List<PersonDTO> getAllPersons() {
         return personRepository.findAll()

@@ -3,8 +3,12 @@ package com.example.exercise.api.consumer;
 import com.example.exercise.api.controller.PersonController;
 import com.example.exercise.api.model.Person;
 import com.example.exercise.api.service.PersonService;
+import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
+import org.apache.kafka.clients.consumer.ConsumerRecords;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.errors.RetriableException;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.annotation.RetryableTopic;
@@ -12,9 +16,15 @@ import org.springframework.kafka.support.Acknowledgment;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import java.util.Properties;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 @Component
 public class MessageConsumer {
@@ -38,7 +48,6 @@ public class MessageConsumer {
 
                     System.out.println("Process record number " + records.indexOf(record));
                     processRecord(record);
-
 //                    String topic = record.topic();
 //                    String key = record.key();
 //                    Person person = record.value();
@@ -59,6 +68,7 @@ public class MessageConsumer {
                 }
                 catch (Exception e) {
                     System.err.println("Error processing record: " + record.value());
+                    if (isDependentEvent(record.key())) throw (e);
                     handleFailedRecord(record);
                 }
             }
@@ -111,7 +121,12 @@ public class MessageConsumer {
             try {
                 task.run();
                 return;
-            } catch (Exception e) {
+            }
+            catch (NullPointerException e) {
+                // If it's a NullPointerException, do not retry and log the error
+                System.err.println("NullPointerException encountered. Task failed: " + e);
+            }
+            catch (Exception e) {
                 attempt++;
                 if (attempt >= maxAttempts) {
                     throw e;
@@ -170,12 +185,17 @@ public class MessageConsumer {
         scheduler.schedule(() -> {
             try {
                 task.run();
-            } catch (Exception e) {
+            }
+            catch (NullPointerException e) {
+                // If it's a NullPointerException, do not retry and log the error
+                System.err.println("NullPointerException encountered. Task failed: " + e);
+            }
+            catch (Exception e) {
                 if (attempt.incrementAndGet() < maxAttempts) {
                     System.err.println("Retrying (non-blocking) attempt " + attempt.get());
                     scheduleRetry(task, attempt, initialDelay * 2, maxAttempts);
                 } else {
-                    System.err.println("Max retry attempts reached. Task failed.");
+                    System.err.println("Max retry attempts reached. Task failed." + e);
                 }
             }
         }, initialDelay, TimeUnit.MILLISECONDS);
@@ -201,5 +221,6 @@ public class MessageConsumer {
         // Handle DLT records, e.g., manual intervention or inspection
         System.err.println("Received message in DLT: " + record.value());
     }
+
 
 }
