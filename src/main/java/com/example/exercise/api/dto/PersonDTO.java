@@ -13,13 +13,15 @@ public class PersonDTO {
     private String lastName;
     private Integer age;
     private String taxNumber;
+    private Double taxDebt;
 
-    public PersonDTO(long id, String firstName, String lastName, Integer age, String taxNumber) {
+    public PersonDTO(long id, String firstName, String lastName, Integer age, String taxNumber, Double taxDebt) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.age = age;
         this.taxNumber = taxNumber;
+        this.taxDebt = taxDebt;
     }
 
 

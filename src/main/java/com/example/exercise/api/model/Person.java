@@ -28,6 +28,9 @@ public class Person {
     @Column
     private LocalDate birthDate;
 
+    @Column
+    private Double taxDebt;
+
     @Transient
     private Integer age;
 }

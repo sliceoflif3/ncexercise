@@ -12,7 +12,9 @@
             <column name="first_name" type="varchar"/>
             <column name="last_name" type="varchar"/>
             <column name="birth_date" type="date"/>
-            <column name="tax_number" type="varchar"/>
+            <column name="tax_number" type="varchar">
+                <constraints unique="true"></constraints>
+            </column>
         </createTable>
     </changeSet>
 
@@ -22,6 +24,12 @@
                 <constraints primaryKey="true"/>
             </column>
         </createTable>
+    </changeSet>
+
+    <changeSet id="3" author="tnmi (generated)">
+        <addColumn tableName="person">
+            <column name="tax_debt" type="double" defaultValue="0"/>
+        </addColumn>
     </changeSet>
 
 </databaseChangeLog>

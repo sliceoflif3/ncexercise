@@ -36,38 +36,42 @@ public class PersonService {
                         .lastName(person.getLastName())
                         .taxNumber(person.getTaxNumber())
                         .age(calculateAge(person.getBirthDate()))
+                        .taxDebt(person.getTaxDebt())
                         .build())
                 .collect(Collectors.toList());
     }
 
 
-    public Optional<PersonDTO> findPersonByTaxNumber(String taxNumber) {
+    public PersonDTO findPersonByTaxNumber(String taxNumber) {
         Person person = personRepository.findByTaxNumber(taxNumber);
         PersonDTO personDTO = PersonDTO.builder()
                 .id(person.getId())
                 .firstName(person.getFirstName())
                 .lastName(person.getLastName())
                 .taxNumber(person.getTaxNumber())
+                .taxDebt(person.getTaxDebt())
                 .build();
         Integer age = calculateAge(person.getBirthDate());
         personDTO.setAge(age);
-        return Optional.of(personDTO);
+        return personDTO;
     }
 
     public Person createPerson(Person person) {
         return personRepository.save(person);
     }
 
-    public Optional<Person> updatePerson(String taxNumber, Person updatedPerson) {
-        Optional<Person> existingPersonOptional = Optional.ofNullable(personRepository.findByTaxNumber(taxNumber));
-        if (existingPersonOptional.isPresent()) {
-            Person existingPerson = existingPersonOptional.get();
+    public Person updatePerson(String taxNumber, Person updatedPerson) {
+            Person existingPerson = personRepository.findByTaxNumber(taxNumber);
             existingPerson.setFirstName(updatedPerson.getFirstName());
             existingPerson.setLastName(updatedPerson.getLastName());
             existingPerson.setBirthDate(updatedPerson.getBirthDate());
-            return Optional.of(personRepository.save(existingPerson));
-        }
-        return Optional.empty();
+            return personRepository.save(existingPerson);
+    }
+
+    public Person calculatePersonTax(String taxNumber, Double taxAmount) {
+        Person existingPerson = personRepository.findByTaxNumber(taxNumber);
+        existingPerson.setTaxDebt(existingPerson.getTaxDebt() + taxAmount);
+        return personRepository.save(existingPerson);
     }
 
     @Transactional
@@ -88,4 +92,6 @@ public class PersonService {
                         .build())
                 .collect(Collectors.toList());
     }
+
+
 }

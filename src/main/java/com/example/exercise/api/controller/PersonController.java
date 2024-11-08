@@ -28,14 +28,21 @@ public class PersonController {
 
     @GetMapping("/person")
     public ResponseEntity<PersonDTO> findPersonByTaxNumber(@RequestParam String taxNumber) {
-        Optional<PersonDTO> personDTO = personService.findPersonByTaxNumber(taxNumber);
-        return personDTO.map(value -> new ResponseEntity<>(value, HttpStatus.OK)).orElseGet(() -> new ResponseEntity<>(HttpStatus.NOT_FOUND));
+        PersonDTO personDTO = personService.findPersonByTaxNumber(taxNumber);
+        return new ResponseEntity<>(personDTO, HttpStatus.OK);
     }
 
     @PostMapping("/create")
     public ResponseEntity<Person> createPerson(@RequestBody Person person) {
-//        return ResponseEntity.status(HttpStatus.CREATED).body(personService.createPerson(person));
+        person.setTaxDebt(0.0);
+//        for(int i = 0; i < 11; i++) {
+//            person.setTaxNumber((i+10)+"");
+//            messageProducer.sendMessage("person-topic","CREATE",person);
+//            System.out.println("sent " +  person.getTaxNumber());
+//        }
         messageProducer.sendMessage("person-topic","CREATE",person);
+//        return ResponseEntity.status(HttpStatus.CREATED).body(personService.createPerson(person));
+
         return ResponseEntity.status(HttpStatus.CREATED).body(person);
     }
 
@@ -64,6 +71,12 @@ public class PersonController {
     public ResponseEntity<List<PersonDTO>> findPersonNameStartsWithMiAndOlderThan30() {
         List<PersonDTO> persons = personService.getAllPersons2();
         return ResponseEntity.status(HttpStatus.OK).body(persons);
+    }
+
+    @PutMapping("/calculateTax")
+    public ResponseEntity<Person> calculateTax(@RequestParam String taxNumber, @RequestParam Double taxAmount) {
+        messageProducer.sendMessage("tax-calculation-topic","CALCULATETAX-" + taxNumber + "-" + taxAmount, null);
+        return new ResponseEntity<>(HttpStatus.OK);
     }
 
 //    @PostMapping("/send")
